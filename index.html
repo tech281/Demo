@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telelenker AI Support Simulation</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .simulation-box {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+            text-align: center;
+        }
+        .disclaimer {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            font-weight: 500;
+            border: 1px solid #ffeeba;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .sub {
+            color: #666;
+            margin-bottom: 25px;
+        }
+        .phone {
+            background: #f0f0f0;
+            border-radius: 40px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #ccc;
+        }
+        .dial-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: background 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .dial-btn:hover {
+            background: #45a049;
+        }
+        .dial-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .call-status {
+            background: #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            min-height: 80px;
+            text-align: left;
+            font-size: 16px;
+            border-left: 4px solid #007bff;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+        }
+        .option-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+            flex: 1 0 120px;
+        }
+        .option-btn:hover {
+            background: #0056b3;
+        }
+        .option-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .order-input {
+            margin: 15px 0;
+        }
+        .order-input input {
+            padding: 10px;
+            width: 200px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .language-selector {
+            margin: 15px 0;
+        }
+        .lang-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+        .lang-btn.active {
+            background: #28a745;
+        }
+        footer {
+            margin-top: 20px;
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="simulation-box">
+        <div class="disclaimer">
+            ⚠️ یہ ایک سیمولیشن ہے۔ باہمی رضامندی سے اس میں ترامیم کی جا سکتی ہیں۔<br>
+            ⚠️ This is a simulation. The system can be customized by mutual agreement.
+        </div>
+        
+        <h2>📞 Telelenker AI Support</h2>
+        <div class="sub">کال سینٹر سیمولیشن</div>
+        
+        <div class="phone">
+            <div class="language-selector">
+                <button class="lang-btn active" onclick="setLanguage('en')">English</button>
+                <button class="lang-btn" onclick="setLanguage('ar')">العربية</button>
+            </div>
+            
+            <button class="dial-btn" id="dialBtn" onclick="startCall()">📱 ڈائل کریں / Dial</button>
+            
+            <div class="call-status" id="callStatus">
+                <span id="statusText">ڈائل بٹن دبائیں... / Press dial to start...</span>
+                <div id="aiResponse" style="margin-top:10px; font-weight:500;"></div>
+            </div>
+            
+            <div id="interactionArea"></div>
+        </div>
+        
+        <footer>
+            Telelenker · پاکستان · 2025
+        </footer>
+    </div>
+
+    <script>
+        let currentLanguage = 'en';
+        let callActive = false;
+        let currentStep = 'welcome';
+        let synth = window.speechSynthesis;
+        let utterance = null;
+
+        // زبان تبدیل کریں
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            if (lang === 'en') {
+                document.querySelectorAll('.lang-btn')[0].classList.add('active');
+            } else {
+                document.querySelectorAll('.lang-btn')[1].classList.add('active');
+            }
+            // اگر کال جاری ہو تو زبان تبدیل کرنے پر پیغام
+            if (callActive) {
+                speak(getMessage('language_changed'));
+                updateStatus(getMessage('language_changed'));
+            }
+        }
+
+        // تمام پیغامات کی فہرست (انگریزی / عربی)
+        const messages = {
+            en: {
+                welcome: "Welcome to Al Amanah Customer Support. This is a simulation of Telelenker's AI system.",
+                language_changed: "Language changed to English.",
+                press_dial: "Press the dial button to start.",
+                select_language: "For English, press 1. For Arabic, press 2.",
+                select_purpose: "For order information, press 1. For promotions, press 2. To speak with a representative, press 3. For payment information, press 4.",
+                enter_order: "Please enter your order number using the keypad below.",
+                order_info: "Your order #ORDER is being processed and will be delivered tomorrow. Thank you.",
+                promotion_info: "Our current promotion: 20% off on all rice products this week!",
+                payment_info: "For payment inquiries, please contact our billing department. In this simulation, we'll have a representative call you back.",
+                busy: "All our lines are currently busy. A representative will contact you shortly. Thank you for your patience.",
+                invalid_option: "Invalid option. Please try again.",
+                thanks: "Thank you for calling. Goodbye!",
+                press_keys: "Press the keys below to simulate DTMF."
+            },
+            ar: {
+                welcome: "مرحبًا بكم في دعم عملاء الأمانة. هذه محاكاة لنظام Telelenker الذكي.",
+                language_changed: "تم تغيير اللغة إلى العربية.",
+                press_dial: "اضغط على زر الاتصال للبدء.",
+                select_language: "للغة الإنجليزية، اضغط 1. للغة العربية، اضغط 2.",
+                select_purpose: "لمعلومات الطلب، اضغط 1. للعروض، اضغط 2. للتحدث مع ممثل، اضغط 3. لمعلومات الدفع، اضغط 4.",
+                enter_order: "الرجاء إدخال رقم الطلب باستخدام لوحة المفاتيح أدناه.",
+                order_info: "طلبك رقم #ORDER قيد المعالجة وسيتم توصيله غدًا. شكرًا لك.",
+                promotion_info: "عرضنا الحالي: خصم 20٪ على جميع منتجات الأرز هذا الأسبوع!",
+                payment_info: "لاستفسارات الدفع، يرجى الاتصال بقسم الفواتير لدينا. في هذه المحاكاة، سيتصل بك ممثل قريبًا.",
+                busy: "جميع خطوطنا مشغولة حاليًا. سيتصل بك ممثل قريبًا. شكرًا لصبرك.",
+                invalid_option: "خيار غير صالح. حاول مرة أخرى.",
+                thanks: "شكرا لاتصالك. مع السلامة!",
+                press_keys: "اضغط على الأزرار أدناه لمحاكاة الاتصال."
+            }
+        };
+
+        function getMessage(key, replaceOrder = '') {
+            let msg = messages[currentLanguage][key] || messages['en'][key];
+            if (replaceOrder) msg = msg.replace('#ORDER', replaceOrder);
+            return msg;
+        }
+
+        // متن کو آواز دیں (Speech)
+        function speak(text, lang = null) {
+            if (!synth) return;
+            // تقریر روکیں اگر پہلے سے چل رہی ہو
+            if (utterance && synth.speaking) {
+                synth.cancel();
+            }
+            utterance = new SpeechSynthesisUtterance(text);
+            // زبان کا تعین (عربی کے لیے مخصوص آواز)
+            if (currentLanguage === 'ar' || lang === 'ar') {
+                utterance.lang = 'ar-SA';
+            } else {
+                utterance.lang = 'en-US';
+            }
+            // آواز کی رفتار اور لہجہ
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            synth.speak(utterance);
+        }
+
+        // اسٹیٹس باکس کو اپ ڈیٹ کریں
+        function updateStatus(text, aiMsg = '') {
+            document.getElementById('statusText').innerText = text;
+            if (aiMsg) {
+                document.getElementById('aiResponse').innerHTML = '🤖 AI: ' + aiMsg;
+            } else {
+                document.getElementById('aiResponse').innerHTML = '';
+            }
+        }
+
+        // انٹرایکشن ایریا کو صاف کریں
+        function clearInteraction() {
+            document.getElementById('interactionArea').innerHTML = '';
+        }
+
+        // کال شروع کریں
+        function startCall() {
+            callActive = true;
+            currentStep = 'welcome';
+            document.getElementById('dialBtn').disabled = true;
+            clearInteraction();
+
+            // خوش آمدید کہیں
+            let welcomeMsg = getMessage('welcome');
+            speak(welcomeMsg);
+            updateStatus('📞 کال جاری... / Call in progress...', welcomeMsg);
+
+            // تھوڑی دیر بعد زبان منتخب کرنے کا کہیں
+            setTimeout(() => {
+                if (!callActive) return;
+                let langPrompt = getMessage('select_language');
+                speak(langPrompt);
+                updateStatus('🗣️ AI بول رہا ہے...', langPrompt);
+                currentStep = 'language_selection';
+                showLanguageOptions();
+            }, 3000);
+        }
+
+        // زبان منتخب کرنے کے بٹن دکھائیں
+        function showLanguageOptions() {
+            let area = document.getElementById('interactionArea');
+            area.innerHTML = `
+                <div class="options">
+                    <button class="option-btn" onclick="selectLanguage('en')">1️⃣ English</button>
+                    <button class="option-btn" onclick="selectLanguage('ar')">2️⃣ العربية</button>
+                </div>
+                <p style="color:#666;">${getMessage('press_keys')}</p>
+            `;
+        }
+
+        // زبان منتخب کریں (صارف نے بٹن دبایا)
+        function selectLanguage(lang) {
+            if (!callActive) return;
+            setLanguage(lang);
+            let confirmMsg = lang === 'en' ? "You have selected English." : "لقد اخترت العربية.";
+            speak(confirmMsg);
+            updateStatus('', confirmMsg);
+            
+            // اگلا مرحلہ: مقصد کا انتخاب
+            setTimeout(() => {
+                if (!callActive) return;
+                let purposePrompt = getMessage('select_purpose');
+                speak(purposePrompt);
+                updateStatus('', purposePrompt);
+                currentStep = 'purpose_selection';
+                showPurposeOptions();
+            }, 2000);
+        }
+
+        // مقصد کے بٹن دکھائیں
+        function showPurposeOptions() {
+            let area = document.getElementById('interactionArea');
+            area.innerHTML = `
+                <div class="options">
+                    <button class="option-btn" onclick="selectPurpose('order')">1️⃣ ${currentLanguage === 'en' ? 'Order Info' : 'معلومات الطلب'}</button>
+                    <button class="option-btn" onclick="selectPurpose('promo')">2️⃣ ${currentLanguage === 'en' ? 'Promotions' : 'العروض'}</button>
+                    <button class="option-btn" onclick="selectPurpose('rep')">3️⃣ ${currentLanguage === 'en' ? 'Speak to Rep' : 'التحدث مع ممثل'}</button>
+                    <button class="option-btn" onclick="selectPurpose('payment')">4️⃣ ${currentLanguage === 'en' ? 'Payment Info' : 'معلومات الدفع'}</button>
+                </div>
+                <p style="color:#666;">${getMessage('press_keys')}</p>
+            `;
+        }
+
+        // صارف نے مقصد منتخب کیا
+        function selectPurpose(purpose) {
+            if (!callActive) return;
+            clearInteraction();
+
+            if (purpose === 'order') {
+                let enterMsg = getMessage('enter_order');
+                speak(enterMsg);
+                updateStatus('', enterMsg);
+                currentStep = 'order_entry';
+                showOrderInput();
+            }
+            else if (purpose === 'promo') {
+                let promoMsg = getMessage('promotion_info');
+                speak(promoMsg);
+                updateStatus('', promoMsg);
+                // واپس آغاز پر جانے کا آپشن
+                setTimeout(() => {
+                    if (!callActive) return;
+                    let againMsg = currentLanguage === 'en' ? "To return to main menu, press 9. To end call, press 0." : "للرجوع إلى القائمة الرئيسية، اضغط 9. لإنهاء المكالمة، اضغط 0.";
+                    speak(againMsg);
+                    updateStatus('', againMsg);
+                    showEndOptions();
+                }, 4000);
+            }
+            else if (purpose === 'rep') {
+                let busyMsg = getMessage('busy');
+                speak(busyMsg);
+                updateStatus('', busyMsg);
+                // تھوڑی دیر بعد کال ختم کر دیں
+                setTimeout(() => {
+                    if (!callActive) return;
+                    endCall();
+                }, 4000);
+            }
+            else if (purpose === 'payment') {
+                let paymentMsg = getMessage('payment_info');
+                speak(paymentMsg);
+                updateStatus('', paymentMsg);
+                setTimeout(() => {
+                    if (!callActive) return;
+                    let againMsg = currentLanguage === 'en' ? "To return to main menu, press 9. To end call, press 0." : "للرجوع إلى القائمة الرئيسية، اضغط 9. لإنهاء المكالمة، اضغط 0.";
+                    speak(againMsg);
+                    updateStatus('', againMsg);
+                    showEndOptions();
+                }, 4000);
+            }
+        }
+
+        // آرڈر نمبر داخل کرنے کا ان پٹ
+        function showOrderInput() {
+            let area = document.getElementById('interactionArea');
+            area.innerHTML = `
+                <div class="order-input">
+                    <input type="text" id="orderNumber" placeholder="e.g., 12345" maxlength="10">
+                    <button class="option-btn" onclick="submitOrder()">${currentLanguage === 'en' ? 'Submit' : 'إرسال'}</button>
+                </div>
+            `;
+        }
+
+        // آرڈر نمبر جمع کروائیں
+        function submitOrder() {
+            let order = document.getElementById('orderNumber').value.trim();
+            if (!order) order = "12345"; // ڈیفالٹ
+            let orderMsg = getMessage('order_info', order);
+            speak(orderMsg);
+            updateStatus('', orderMsg);
+            clearInteraction();
+
+            // واپس آغاز پر جانے کا آپشن
+            setTimeout(() => {
+                if (!callActive) return;
+                let againMsg = currentLanguage === 'en' ? "To return to main menu, press 9. To end call, press 0." : "للرجوع إلى القائمة الرئيسية، اضغط 9. لإنهاء المكالمة، اضغط 0.";
+                speak(againMsg);
+                updateStatus('', againMsg);
+                showEndOptions();
+            }, 4000);
+        }
+
+        // اختتامی اختیارات (دوبارہ مینو یا کال ختم)
+        function showEndOptions() {
+            let area = document.getElementById('interactionArea');
+            area.innerHTML = `
+                <div class="options">
+                    <button class="option-btn" onclick="restartCall()">9️⃣ ${currentLanguage === 'en' ? 'Main Menu' : 'القائمة الرئيسية'}</button>
+                    <button class="option-btn" onclick="endCall()">0️⃣ ${currentLanguage === 'en' ? 'End Call' : 'إنهاء المكالمة'}</button>
+                </div>
+            `;
+        }
+
+        // دوبارہ شروع (مینو)
+        function restartCall() {
+            if (!callActive) return;
+            clearInteraction();
+            let restartMsg = currentLanguage === 'en' ? "Returning to main menu." : "العودة إلى القائمة الرئيسية.";
+            speak(restartMsg);
+            updateStatus('', restartMsg);
+            setTimeout(() => {
+                if (!callActive) return;
+                let purposePrompt = getMessage('select_purpose');
+                speak(purposePrompt);
+                updateStatus('', purposePrompt);
+                currentStep = 'purpose_selection';
+                showPurposeOptions();
+            }, 2000);
+        }
+
+        // کال ختم کریں
+        function endCall() {
+            if (!callActive) return;
+            let thanksMsg = getMessage('thanks');
+            speak(thanksMsg);
+            updateStatus('📞 کال ختم / Call ended', thanksMsg);
+            callActive = false;
+            currentStep = 'ended';
+            document.getElementById('dialBtn').disabled = false;
+            clearInteraction();
+        }
+
+        // اگر صارف نے غلط بٹن دبایا (کسی بھی وقت)
+        function invalidOption() {
+            if (!callActive) return;
+            let invalidMsg = getMessage('invalid_option');
+            speak(invalidMsg);
+            updateStatus('', invalidMsg);
+        }
+
+        // ڈائل پیڈ سمولیشن کے لیے (اختیاری) - فی الحال ضرورت نہیں
+        window.onload = function() {
+            // یقینی بنائیں کہ کوئی پرانی تقریر نہ چل رہی ہو
+            if (synth.speaking) synth.cancel();
+        };
+    </script>
+</body>
+  </html>
